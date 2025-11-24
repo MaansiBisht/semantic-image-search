@@ -1,23 +1,23 @@
-fastapi
-uvicorn[standard]
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
 
 # PyTorch with CPU support
 --extra-index-url https://download.pytorch.org/whl/cpu
-torch
-torchvision
+torch>=2.0.0
+torchvision>=0.15.0
 
 # ML/AI
-transformers
-accelerate
-numpy
-scikit-learn
-pillow
+transformers>=4.30.0
+accelerate>=0.20.0
+numpy>=1.24.0
+scikit-learn>=1.2.0
+pillow>=10.0.0
 
 # Utils
-python-dotenv
-pinecone-client
-pydantic-settings
-httpx
+python-dotenv>=1.0.0
+pinecone-client>=3.0.0
+pydantic-settings>=2.0.0
+httpx>=0.24.0
 
 # Dev
-pytest
+pytest>=7.0.0
