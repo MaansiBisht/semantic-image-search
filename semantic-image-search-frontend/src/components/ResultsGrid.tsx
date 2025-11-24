@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { ExternalLink, Download, User, Tag, Palette, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { SearchResult } from '../lib/api';
-import { Button } from './ui/button';
-import { addToFavorites, removeFromFavorites, isFavorited } from '../lib/favorites';
+import { SearchResult } from '@/lib/api';
+import { Button } from '@/components/ui/button';
+import { addToFavorites, removeFromFavorites, isFavorited } from '@/lib/favorites';
 
 interface ResultsGridProps {
   results: SearchResult[];

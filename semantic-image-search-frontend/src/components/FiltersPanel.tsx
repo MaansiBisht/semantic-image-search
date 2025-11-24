@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { BarChart3, Database, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { apiClient, Category, StatsResponse } from '../lib/api';
-import { Button } from './ui/button';
+import { apiClient, Category, StatsResponse } from '@/lib/api';
+import { Button } from '@/components/ui/button';
 
 interface FiltersPanelProps {
   onCategorySelect: (category: string) => void;
