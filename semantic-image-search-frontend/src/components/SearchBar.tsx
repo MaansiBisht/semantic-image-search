@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react';
 import { Search, Loader2, Settings, Upload, Image, X, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
+import { Button } from './ui/button';
 
 interface SearchBarProps {
   onSearch: (query: string, options: SearchOptions) => void;

@@ -3,13 +3,13 @@
 import { useState, useEffect } from 'react';
 import { Menu, X, Search as SearchIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { SearchBar, SearchOptions } from '@/components/SearchBar';
-import { ResultsGrid } from '@/components/ResultsGrid';
-import { FiltersPanel } from '@/components/FiltersPanel';
-import { apiClient, SearchResult } from '@/lib/api';
-import { Button } from '@/components/ui/button';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { addToRecentSearches } from '@/lib/favorites';
+import { SearchBar, SearchOptions } from '../components/SearchBar';
+import { ResultsGrid } from '../components/ResultsGrid';
+import { FiltersPanel } from '../components/FiltersPanel';
+import { apiClient, SearchResult } from '../lib/api';
+import { Button } from '../components/ui/button';
+import { ThemeToggle } from '../components/ThemeToggle';
+import { addToRecentSearches } from '../lib/favorites';
 
 export default function Home() {
   const [results, setResults] = useState<SearchResult[]>([]);
