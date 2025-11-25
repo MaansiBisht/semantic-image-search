@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import gc
 import io
-from functools import lru_cache
 from typing import Sequence
 
 import httpx
