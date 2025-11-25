@@ -1,12 +1,7 @@
 {
-  "buildCommand": "cd semantic-image-search-frontend && npm run build",
-  "outputDirectory": "semantic-image-search-frontend/.next",
-  "installCommand": "cd semantic-image-search-frontend && npm install",
-  "framework": "nextjs",
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/"
-    }
-  ]
+  "rootDirectory": "semantic-image-search-frontend",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "installCommand": "npm install",
+  "framework": "nextjs"
 }
