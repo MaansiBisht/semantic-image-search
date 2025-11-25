@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import gc
 import io
 from functools import lru_cache
 from typing import Sequence
@@ -22,7 +23,19 @@ class CLIPService:
             requested_device = "cpu"
 
         self._device = torch.device(requested_device)
-        self._model = CLIPModel.from_pretrained(settings.clip_model_name).to(self._device)
+        
+        # Load model with lower memory usage
+        self._model = CLIPModel.from_pretrained(
+            settings.clip_model_name,
+            torch_dtype=torch.float16 if self._device.type == "cuda" else torch.float32,
+            low_cpu_mem_usage=True
+        ).to(self._device)
+        
+        # Optimize model for inference
+        self._model.eval()
+        if self._device.type == "cuda":
+            self._model = torch.compile(self._model)
+        
         self._processor = CLIPProcessor.from_pretrained(settings.clip_model_name)
 
     @property
@@ -37,7 +50,15 @@ class CLIPService:
         with torch.no_grad():
             text_features = self._model.get_text_features(**inputs)
             normalized = text_features / text_features.norm(dim=-1, keepdim=True)
-        return normalized.squeeze(0).cpu().tolist()
+            result = normalized.squeeze(0).cpu().tolist()
+        
+        # Clear intermediate tensors to free memory
+        del inputs, text_features, normalized
+        if self._device.type == "cuda":
+            torch.cuda.empty_cache()
+        gc.collect()  # Force garbage collection
+        
+        return result
 
     def encode_image_from_bytes(self, image_bytes: bytes) -> list[float]:
         with Image.open(io.BytesIO(image_bytes)) as image:
@@ -67,11 +88,23 @@ class CLIPService:
         return torch.dot(a_norm, b_norm).item()
 
     def _encode_image(self, image: Image.Image) -> list[float]:
+        # Resize image to reduce memory usage
+        if max(image.size) > 512:
+            image = image.resize((512, 512), Image.Resampling.LANCZOS)
+        
         inputs = self._processor(images=image, return_tensors="pt").to(self.device)
         with torch.no_grad():
             image_features = self._model.get_image_features(**inputs)
             normalized = image_features / image_features.norm(dim=-1, keepdim=True)
-        return normalized.squeeze(0).cpu().tolist()
+            result = normalized.squeeze(0).cpu().tolist()
+        
+        # Clear intermediate tensors to free memory
+        del inputs, image_features, normalized
+        if self._device.type == "cuda":
+            torch.cuda.empty_cache()
+        gc.collect()  # Force garbage collection
+        
+        return result
 
 
 @lru_cache
