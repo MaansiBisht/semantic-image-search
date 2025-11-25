@@ -23,20 +23,30 @@ class CLIPService:
             requested_device = "cpu"
 
         self._device = torch.device(requested_device)
+        self._model = None  # Lazy loading
+        self._processor = None  # Lazy loading
+        self._settings = settings
+
+    def _ensure_model_loaded(self) -> None:
+        """Lazy load the model only when needed."""
+        if self._model is None:
+            # Load model with maximum memory optimization
+            self._model = CLIPModel.from_pretrained(
+                self._settings.clip_model_name,
+                torch_dtype=torch.float16 if self._device.type == "cuda" else torch.float32,
+                low_cpu_mem_usage=True,
+                device_map="auto" if self._device.type == "cuda" else None
+            )
+            
+            # Optimize model for inference
+            self._model.eval()
+            
+            # Move to device if not using device_map
+            if not (self._device.type == "cuda" and hasattr(self._model, 'hf_device_map')):
+                self._model = self._model.to(self._device)
         
-        # Load model with lower memory usage
-        self._model = CLIPModel.from_pretrained(
-            settings.clip_model_name,
-            torch_dtype=torch.float16 if self._device.type == "cuda" else torch.float32,
-            low_cpu_mem_usage=True
-        ).to(self._device)
-        
-        # Optimize model for inference
-        self._model.eval()
-        if self._device.type == "cuda":
-            self._model = torch.compile(self._model)
-        
-        self._processor = CLIPProcessor.from_pretrained(settings.clip_model_name)
+        if self._processor is None:
+            self._processor = CLIPProcessor.from_pretrained(self._settings.clip_model_name)
 
     @property
     def device(self) -> torch.device:
@@ -46,6 +56,7 @@ class CLIPService:
         if not text:
             raise ValueError("Text must not be empty")
 
+        self._ensure_model_loaded()
         inputs = self._processor(text=[text], return_tensors="pt", padding=True).to(self.device)
         with torch.no_grad():
             text_features = self._model.get_text_features(**inputs)
@@ -88,18 +99,28 @@ class CLIPService:
         return torch.dot(a_norm, b_norm).item()
 
     def _encode_image(self, image: Image.Image) -> list[float]:
-        # Resize image to reduce memory usage
-        if max(image.size) > 512:
-            image = image.resize((512, 512), Image.Resampling.LANCZOS)
+        self._ensure_model_loaded()
+        
+        # Resize image to reduce memory usage - smaller size for Render
+        if max(image.size) > 256:
+            image = image.resize((256, 256), Image.Resampling.LANCZOS)
+        
+        # Convert to RGB if needed
+        if image.mode != "RGB":
+            image = image.convert("RGB")
         
         inputs = self._processor(images=image, return_tensors="pt").to(self.device)
+        
+        # Use smaller batch size and clear memory aggressively
         with torch.no_grad():
             image_features = self._model.get_image_features(**inputs)
             normalized = image_features / image_features.norm(dim=-1, keepdim=True)
             result = normalized.squeeze(0).cpu().tolist()
         
-        # Clear intermediate tensors to free memory
+        # Aggressive memory cleanup
         del inputs, image_features, normalized
+        if hasattr(image, 'close'):
+            image.close()
         if self._device.type == "cuda":
             torch.cuda.empty_cache()
         gc.collect()  # Force garbage collection
@@ -107,6 +128,11 @@ class CLIPService:
         return result
 
 
-@lru_cache
+# Global instance to avoid multiple model loading
+_clip_service_instance = None
+
 def get_clip_service() -> CLIPService:
-    return CLIPService()
+    global _clip_service_instance
+    if _clip_service_instance is None:
+        _clip_service_instance = CLIPService()
+    return _clip_service_instance
